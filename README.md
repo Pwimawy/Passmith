@@ -26,6 +26,7 @@ git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://gi
 
 # Navigate into the project directory
 cd YOUR_REPOSITORY_NAME
+\```bash
 
 ```markdown
 ### 2. Manual Download
@@ -40,12 +41,12 @@ The script is executed directly using the Python 3 interpreter.
 ### Running from the Command Line
 
 From the directory containing the file, run the following command:
-
+\```markdown
 ```bash
 python3 wordlist_generator_cli_menu.py
 
 ### Block 4: Execution (VS Code)
-
+\```bash
 ```markdown
 ### Running from VS Code
 
