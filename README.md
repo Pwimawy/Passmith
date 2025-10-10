@@ -1,4 +1,4 @@
-# Passmith Wordlist Generator 🧙‍♂️
+#🧙‍♂️ Passmith
 
 A lightweight, interactive command-line interface (CLI) tool written in **Python 3** for generating highly targeted wordlists. It's designed to create password candidates based on custom input values (like names, dates, or keywords) combined with flexible settings like casing variations, separators, Leet-speak, and length constraints.
 
