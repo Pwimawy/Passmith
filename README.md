@@ -21,11 +21,11 @@ This tool requires **Python 3**.
 Use `git` to clone the repository to your local machine:
 
 ```bash
-# Clone the repository (Replace with your actual GitHub path)
-git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git) 
+# Clone the repository
+git clone https://github.com/Pwimawy/Passmith.git
 
 # Navigate into the project directory
-cd YOUR_REPOSITORY_NAME
+cd Passmith
 ```
 
 ### 2. Manual Download
@@ -37,17 +37,16 @@ If you prefer not to use Git, you can download the single file directly. To do t
 
 The script is executed directly using the Python 3 interpreter.
 
-### Running from the Command Line
+### 1. Running from the Command Line
 
 From the directory containing the file, run the following command:
 ```bash
-python3 wordlist_generator_cli_menu.py
+python3 passmith.py
 ```
-### Block 4: Execution (VS Code)
 
-### Running from VS Code
+### 2. Running from VS Code
 
-To run within VS Code: Open the `wordlist_generator_cli_menu.py` file. Ensure your VS Code terminal is set to use Python 3. You can execute the script by clicking the **"Run Python File"** button (or the small triangle icon) in the top-right corner of the editor, or by opening the integrated terminal (`Ctrl+\`` or `Cmd+\``) and using the command line method shown above.
+To run within VS Code: Open the `passmith.py` file. Ensure your VS Code terminal is set to use Python 3. You can execute the script by clicking the **"Run Python File"** button (or the small triangle icon) in the top-right corner of the editor, or by opening the integrated terminal (`Ctrl+\`` or `Cmd+\``) and using the command line method shown above.
 
 ---
 ## ✨ Menu Options & Features
@@ -56,7 +55,7 @@ The program runs an interactive loop with the following menu:
 
 | Option | Command | Functionality |
 | :---: | :--- | :--- |
-| **1** | `Create value` | Add key-value pairs (e.g., `name=John`, `dob=19900115`) that will be used as a basis for combinations. |
+| **1** | `Create value` | Add key-value pairs (e.g., `name=John`, `lastname=Smith`) that will be used as a basis for combinations. |
 | **2** | `Review values` | Display current inputs and allows for deletion of specific keys. |
 | **3** | `Execute Wordlist` | **Generates** the wordlist in memory by creating two-item combinations of all input values and applying settings. **Run this first!** |
 | **4** | `Edit settings` | Customize generation rules, including: <br> - **Separators:** Set characters to be used between combined words (e.g., `., _, -`, or `none`). <br> - **Order Matters:** Enable/disable $A-sep-B$ vs. $B-sep-A$. <br> - **Enable Leet:** Apply basic Leet-speak substitutions (e.g., $a \to 4$, $e \to 3$, $s \to 5$). <br> - **Length Filtering:** Set minimum, maximum, or exact length constraints. |
