@@ -26,9 +26,8 @@ git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://gi
 
 # Navigate into the project directory
 cd YOUR_REPOSITORY_NAME
-\```bash
+```
 
-```markdown
 ### 2. Manual Download
 
 If you prefer not to use Git, you can download the single file directly. To do this, navigate to the `wordlist_generator_cli_menu.py` file on GitHub, click the **"Raw"** button, and then right-click on the page to select **"Save As..."** to save the file to your desired location.
@@ -41,13 +40,11 @@ The script is executed directly using the Python 3 interpreter.
 ### Running from the Command Line
 
 From the directory containing the file, run the following command:
-\```markdown
 ```bash
 python3 wordlist_generator_cli_menu.py
-
+```
 ### Block 4: Execution (VS Code)
-\```bash
-```markdown
+
 ### Running from VS Code
 
 To run within VS Code: Open the `wordlist_generator_cli_menu.py` file. Ensure your VS Code terminal is set to use Python 3. You can execute the script by clicking the **"Run Python File"** button (or the small triangle icon) in the top-right corner of the editor, or by opening the integrated terminal (`Ctrl+\`` or `Cmd+\``) and using the command line method shown above.
