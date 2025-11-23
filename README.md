@@ -30,7 +30,7 @@ cd Passmith
 
 ### 2. Manual Download
 
-If you prefer not to use Git, you can download the single file directly. To do this, navigate to the `wordlist_generator_cli_menu.py` file on GitHub, click the **"Raw"** button, and then right-click on the page to select **"Save As..."** to save the file to your desired location.
+If you prefer not to use Git, you can download the single file directly. To do this, navigate to the `passmith.py` file on GitHub, click the **"Raw"** button, and then right-click on the page to select **"Save As..."** to save the file to your desired location.
 
 ---
 ## 💻 Execution
