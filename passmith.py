@@ -3,7 +3,7 @@ import random
 import re
 import sys
 import os
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from collections import Counter
 import time
 
@@ -28,6 +28,24 @@ BANNER = f"""{CYAN}
 {GREEN}                MADE BY: PWIMAWY | v2.0{RESET}
 """
 
+# Output folder for all exported wordlists
+OUTPUT_DIR = "generated wordlist"
+
+
+# ---------------- Output folder setup ------------------------------------
+
+def ensure_output_dir() -> str:
+    """Check for output folder, create it if missing. Returns the folder path."""
+    if not os.path.exists(OUTPUT_DIR):
+        try:
+            os.makedirs(OUTPUT_DIR)
+            print(f"{GREEN}✓ Created output folder: '{OUTPUT_DIR}'{RESET}")
+        except Exception as e:
+            print(f"{RED}Could not create output folder '{OUTPUT_DIR}': {e}{RESET}")
+            print(f"{YELLOW}  Files will be saved to current directory instead.{RESET}")
+            return "."
+    return OUTPUT_DIR
+
 
 # ---------------- Helpers -------------------------------------------------
 
@@ -44,7 +62,7 @@ def normalize_date(value: str) -> List[str]:
     elif len(digits) == 6:
         y2, mm, dd = digits[0:2], digits[2:4], digits[4:6]
         variants.update([y2, mm+dd, dd+mm, y2+mm+dd, dd+mm+y2, mm+dd+y2])
-    elif len(digits) in (4,2):
+    elif len(digits) in (4, 2):
         variants.add(digits)
     else:
         if digits:
@@ -63,19 +81,19 @@ def casing_variants(s: str) -> Set[str]:
     if not s:
         return set()
     vals = {s, s.lower(), s.upper(), s.capitalize()}
-    
+
     # Title case
     vals.add(s.title())
-    
+
     # Alternating case
     if len(s) > 1:
         vals.add(''.join([c.upper() if i % 2 == 0 else c.lower() for i, c in enumerate(s)]))
         vals.add(''.join([c.lower() if i % 2 == 0 else c.upper() for i, c in enumerate(s)]))
-    
+
     # First letter upper, rest lower
     if len(s) > 0:
         vals.add(s[0].upper() + s[1:].lower())
-    
+
     parts = [p for p in re.split(r"\s+", s) if p]
     if parts:
         initials = ''.join([p[0] for p in parts])
@@ -93,14 +111,14 @@ def leet_variants(s: str) -> Set[str]:
         'b': ['8'], 'z': ['2']
     }
     out = {s}
-    
+
     # Single character substitutions
     for i, ch in enumerate(s.lower()):
         if ch in subs:
             for sub in subs[ch]:
                 out.add(s[:i] + sub + s[i+1:])
-    
-    # Multiple substitutions (up to 3)
+
+    # Multiple substitutions (up to 2)
     positions = [(i, ch) for i, ch in enumerate(s.lower()) if ch in subs]
     if len(positions) >= 2:
         for combo in itertools.combinations(positions[:4], min(2, len(positions))):
@@ -108,7 +126,7 @@ def leet_variants(s: str) -> Set[str]:
             for idx, ch in combo:
                 temp[idx] = subs[ch][0]
             out.add(''.join(temp))
-    
+
     return out
 
 
@@ -128,9 +146,12 @@ def double_chars(s: str) -> Set[str]:
 def keyboard_walk(s: str) -> Set[str]:
     """Generate keyboard walk patterns"""
     keyboard_map = {
-        'q': 'wa', 'w': 'qeas', 'e': 'wdsr', 'r': 'etf', 't': 'rgy', 'y': 'tuh', 'u': 'yij', 'i': 'uok', 'o': 'ipl', 'p': 'ol',
-        'a': 'qwsz', 's': 'awedxz', 'd': 'serfcx', 'f': 'drtgvc', 'g': 'ftyhbv', 'h': 'gyujnb', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop',
-        'z': 'asx', 'x': 'zsdc', 'c': 'xdfv', 'v': 'cfgb', 'b': 'vghn', 'n': 'bhjm', 'm': 'njk'
+        'q': 'wa', 'w': 'qeas', 'e': 'wdsr', 'r': 'etf', 't': 'rgy', 'y': 'tuh',
+        'u': 'yij', 'i': 'uok', 'o': 'ipl', 'p': 'ol',
+        'a': 'qwsz', 's': 'awedxz', 'd': 'serfcx', 'f': 'drtgvc', 'g': 'ftyhbv',
+        'h': 'gyujnb', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop',
+        'z': 'asx', 'x': 'zsdc', 'c': 'xdfv', 'v': 'cfgb', 'b': 'vghn',
+        'n': 'bhjm', 'm': 'njk'
     }
     out = set()
     for i, ch in enumerate(s.lower()):
@@ -140,13 +161,13 @@ def keyboard_walk(s: str) -> Set[str]:
     return out
 
 
-def field_variants(field_name: str, value: str, enable_leet: bool=False, enable_advanced: bool=False) -> Set[str]:
+def field_variants(field_name: str, value: str, enable_leet: bool = False, enable_advanced: bool = False) -> Set[str]:
     """Enhanced field variants with more transformations"""
     if not value:
         return set()
     key = (field_name or '').lower()
     vals = set()
-    
+
     if key in ('birthdate', 'anniversary', 'dob', 'date'):
         vals.update(normalize_date(value))
     elif key == 'age':
@@ -161,9 +182,8 @@ def field_variants(field_name: str, value: str, enable_leet: bool=False, enable_
             vals.add(p)
         if len(parts) > 1:
             vals.add(''.join([p[0] for p in parts]))
-            # Add reversed initials
             vals.add(''.join([p[0] for p in reversed(parts)]))
-    
+
     final = set()
     for v in vals:
         for c in casing_variants(v):
@@ -172,33 +192,38 @@ def field_variants(field_name: str, value: str, enable_leet: bool=False, enable_
                 final.update(leet_variants(c))
             if enable_advanced:
                 final.add(reverse_string(c))
-                # Limit double_chars to shorter strings to avoid explosion
                 if len(c) <= 6:
                     final.update(list(double_chars(c))[:5])
-    
+
     return final
 
 
 def generate_common_patterns() -> List[str]:
     """Generate common password patterns"""
     patterns = []
-    
+
     # Common sequences
     patterns.extend(['123', '1234', '12345', '123456', '1234567', '12345678'])
     patterns.extend(['qwerty', 'qwertz', 'azerty', 'asdf', 'asdfgh'])
     patterns.extend(['password', 'pass', 'passwd', 'letmein', 'welcome'])
     patterns.extend(['admin', 'root', 'user', 'test', 'guest'])
     patterns.extend(['master', 'super', 'default', 'changeme'])
-    
+
     # Years
     for year in range(1950, 2026):
         patterns.append(str(year))
         patterns.append(str(year)[2:])
-    
-    # Common suffixes/prefixes
+
+    # Common suffix/prefix variants
     suffixes = ['!', '!!', '!!!', '123', '1', '01', '2024', '2025', '@', '#']
     prefixes = ['!', '@', '#', '$']
-    
+    base_words = ['password', 'pass', 'admin', 'root', 'user', 'test']
+    for w in base_words:
+        for suf in suffixes:
+            patterns.append(w + suf)
+        for pre in prefixes:
+            patterns.append(pre + w)
+
     return patterns
 
 
@@ -215,59 +240,56 @@ def add_special_char_variants(base: str) -> Set[str]:
     """Add special character variations"""
     special_chars = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '+', '=']
     variants = {base}
-    
+
     for char in special_chars[:8]:  # Limit to prevent explosion
         variants.add(base + char)
         variants.add(char + base)
-    
+
     # Common patterns
     variants.add(base + '!')
     variants.add(base + '!!')
     variants.add(base + '123')
     variants.add(base + '@')
     variants.add(base + '#')
-    
+
     return variants
 
 
-def generate_combinations(fields: Dict[str, str], separators: List[str], 
-                         num_fields: int = 2, order_matters: bool = True, 
-                         enable_leet: bool = False, enable_advanced: bool = False) -> List[str]:
+def generate_combinations(fields: Dict[str, str], separators: List[str],
+                          num_fields: int = 2, order_matters: bool = True,
+                          enable_leet: bool = False, enable_advanced: bool = False) -> List[str]:
     """Generate combinations with configurable number of fields"""
     items = [(k, v) for k, v in fields.items() if v]
-    
+
     if len(items) < num_fields:
         return []
-    
+
     if order_matters:
         combos = itertools.permutations(items, num_fields)
     else:
         combos = itertools.combinations(items, num_fields)
-    
+
     out = []
     total_combos = 0
-    
+
     for combo in combos:
         total_combos += 1
         if total_combos > 10000:  # Safety limit for memory
             break
-            
-        # Get variants for each field
+
         variant_lists = []
         for k, v in combo:
             variants = field_variants(k, v, enable_leet=enable_leet, enable_advanced=enable_advanced)
-            # Limit variants per field to prevent explosion
             variant_lists.append(list(variants)[:20])
-        
-        # Generate all combinations
+
         for variant_combo in itertools.product(*variant_lists):
             for sep in separators:
                 out.append(sep.join(variant_combo))
-    
+
     return out
 
 
-def filter_by_length(candidates: List[str], exact: int=None, min_len: int=None, max_len: int=None) -> List[str]:
+def filter_by_length(candidates: List[str], exact: Optional[int] = None, min_len: Optional[int] = None, max_len: Optional[int] = None) -> List[str]:
     """Filter candidates by length"""
     out = []
     for c in candidates:
@@ -288,12 +310,12 @@ def calculate_statistics(words: List[str]) -> Dict:
     """Calculate statistics about generated wordlist"""
     if not words:
         return {}
-    
+
     lengths = [len(w) for w in words]
     char_counter = Counter()
     for w in words:
         char_counter.update(w.lower())
-    
+
     return {
         'total': len(words),
         'unique': len(set(words)),
@@ -402,63 +424,89 @@ def edit_settings_flow(settings: Dict):
     s = prompt_input(f"{CYAN}Set separators (comma-separated e.g. '',_,-,@) or Enter to keep: {RESET}").strip()
     if s:
         settings['separators'] = [p if p.lower() != 'none' else '' for p in [x.strip() for x in s.split(',')]]
-    
+
     n = prompt_input(f"{CYAN}Number of fields to combine (2-4) or Enter to keep: {RESET}").strip()
     if n.isdigit() and 2 <= int(n) <= 4:
         settings['num_fields'] = int(n)
-    
+
     o = prompt_input(f"{CYAN}Order matters? (y/n) or Enter to keep: {RESET}").strip().lower()
-    if o in ('y','n'):
+    if o in ('y', 'n'):
         settings['order_matters'] = (o == 'y')
-    
+
     l = prompt_input(f"{CYAN}Enable leet? (y/n) or Enter to keep: {RESET}").strip().lower()
-    if l in ('y','n'):
+    if l in ('y', 'n'):
         settings['enable_leet'] = (l == 'y')
-    
+
     a = prompt_input(f"{CYAN}Enable advanced transforms (reverse, double, etc)? (y/n) or Enter to keep: {RESET}").strip().lower()
-    if a in ('y','n'):
+    if a in ('y', 'n'):
         settings['enable_advanced'] = (a == 'y')
-    
-    ex = prompt_input(f"{CYAN}Exact length (number) or Enter to keep/unset: {RESET}").strip()
-    settings['exact_length'] = int(ex) if ex.isdigit() else None
-    
-    mn = prompt_input(f"{CYAN}Min length or Enter to keep: {RESET}").strip()
-    settings['min_length'] = int(mn) if mn.isdigit() else None
-    
-    mx = prompt_input(f"{CYAN}Max length or Enter to keep: {RESET}").strip()
-    settings['max_length'] = int(mx) if mx.isdigit() else None
-    
+
+    # FIX: Only update length settings if user actually types something
+    ex = prompt_input(f"{CYAN}Exact length (number) or Enter to keep [{settings['exact_length']}]: {RESET}").strip()
+    if ex.isdigit():
+        settings['exact_length'] = int(ex)
+    elif ex.lower() in ('none', 'clear', 'reset'):
+        settings['exact_length'] = None
+
+    mn = prompt_input(f"{CYAN}Min length (number) or Enter to keep [{settings['min_length']}]: {RESET}").strip()
+    if mn.isdigit():
+        settings['min_length'] = int(mn)
+    elif mn.lower() in ('none', 'clear', 'reset'):
+        settings['min_length'] = None
+
+    mx = prompt_input(f"{CYAN}Max length (number) or Enter to keep [{settings['max_length']}]: {RESET}").strip()
+    if mx.isdigit():
+        settings['max_length'] = int(mx)
+    elif mx.lower() in ('none', 'clear', 'reset'):
+        settings['max_length'] = None
+
     print(f"{GREEN}Settings updated.{RESET}")
 
 
+# FIX: execute_wordlist_flow — always generate single-field variants first,
+#      then attempt combinations only if enough fields exist.
 def execute_wordlist_flow(fields: Dict[str, str], settings: Dict, extra_words: List[str]) -> List[str]:
-    if len(fields) < settings['num_fields']:
-        print(f"{RED}At least {settings['num_fields']} fields required to generate with current settings.{RESET}")
+    if not fields:
+        print(f"{RED}No fields set. Use option 1 to add values first.{RESET}")
         return []
-    
+
     print(f"{CYAN}Generating wordlist...{RESET}")
     start_time = time.time()
-    
+
     candidates = []
-    
-    # Generate combinations
-    print(f"{YELLOW}→ Generating {settings['num_fields']}-field combinations...{RESET}")
-    combos = generate_combinations(
-        fields, 
-        settings['separators'], 
-        settings['num_fields'],
-        settings['order_matters'], 
-        settings['enable_leet'],
-        settings['enable_advanced']
-    )
-    candidates.extend(combos)
-    
-    # Add extra words (patterns, dictionary)
+
+    # --- Step 1: Always generate single-field variants for every field ---
+    print(f"{YELLOW}→ Generating single-field variants...{RESET}")
+    for k, v in fields.items():
+        variants = field_variants(k, v,
+                                  enable_leet=settings['enable_leet'],
+                                  enable_advanced=settings['enable_advanced'])
+        candidates.extend(variants)
+    print(f"{YELLOW}  ({len(candidates)} variants from {len(fields)} field(s)){RESET}")
+
+    # --- Step 2: Generate multi-field combinations if enough fields exist ---
+    if len(fields) >= settings['num_fields']:
+        print(f"{YELLOW}→ Generating {settings['num_fields']}-field combinations...{RESET}")
+        combos = generate_combinations(
+            fields,
+            settings['separators'],
+            settings['num_fields'],
+            settings['order_matters'],
+            settings['enable_leet'],
+            settings['enable_advanced']
+        )
+        candidates.extend(combos)
+        print(f"{YELLOW}  ({len(combos)} combination candidates){RESET}")
+    else:
+        print(f"{YELLOW}→ Only {len(fields)} field(s) present — skipping {settings['num_fields']}-field combinations.{RESET}")
+        print(f"{YELLOW}  (Add more fields or lower 'num_fields' in settings to enable combinations){RESET}")
+
+    # --- Step 3: Add extra words (patterns, dictionary) ---
     if extra_words:
         print(f"{YELLOW}→ Adding {len(extra_words)} extra patterns/dictionary words...{RESET}")
         candidates.extend(extra_words)
-    
-    # Dedupe preserving order
+
+    # --- Step 4: Dedupe preserving order ---
     print(f"{YELLOW}→ Removing duplicates...{RESET}")
     seen = set()
     unique = []
@@ -466,19 +514,19 @@ def execute_wordlist_flow(fields: Dict[str, str], settings: Dict, extra_words: L
         if c not in seen:
             seen.add(c)
             unique.append(c)
-    
-    # Filter by length
+
+    # --- Step 5: Filter by length ---
     print(f"{YELLOW}→ Filtering by length...{RESET}")
     filtered = filter_by_length(unique, settings['exact_length'], settings['min_length'], settings['max_length'])
-    
+
     elapsed = time.time() - start_time
     print(f"{GREEN}✓ Generated {len(filtered)} unique candidates in {elapsed:.2f}s{RESET}")
-    print(f"{YELLOW}  (Removed {len(unique) - len(filtered)} duplicates/filtered){RESET}")
-    
+    print(f"{YELLOW}  (Removed {len(unique) - len(filtered)} by length filter){RESET}")
+
     return filtered
 
 
-def preview_flow(words: List[str], n: int=50):
+def preview_flow(words: List[str], n: int = 50):
     if not words:
         print(f"{YELLOW}No generated words to preview. Run Execute Wordlist first.{RESET}")
         return
@@ -491,14 +539,23 @@ def preview_flow(words: List[str], n: int=50):
 
 def export_flow(words: List[str]):
     if not words:
-        print(f"{YELLOW}No words to export.{RESET}")
+        print(f"{YELLOW}No words to export. Run Execute Wordlist first.{RESET}")
         return
-    fname = prompt_input(f"{CYAN}Enter filename to save (default wordlist.txt): {RESET}").strip() or 'wordlist.txt'
+
+    # Ensure output folder exists
+    out_dir = ensure_output_dir()
+
+    fname = prompt_input(f"{CYAN}Enter filename to save (default: wordlist.txt): {RESET}").strip() or 'wordlist.txt'
+
+    # Strip any path the user may have typed — always save inside output dir
+    fname = os.path.basename(fname)
+    full_path = os.path.join(out_dir, fname)
+
     try:
-        with open(fname, 'w', encoding='utf-8') as f:
+        with open(full_path, 'w', encoding='utf-8') as f:
             for w in words:
                 f.write(w + '\n')
-        print(f"{GREEN}✓ Saved {len(words)} words to {fname}{RESET}")
+        print(f"{GREEN}✓ Saved {len(words)} words to '{full_path}'{RESET}")
     except Exception as e:
         print(f"{RED}Error writing file:{RESET} {e}")
 
@@ -509,9 +566,9 @@ def add_patterns_flow(extra_words: List[str]):
     print(f"{CYAN}2{RESET}) Add year range")
     print(f"{CYAN}3{RESET}) Add custom pattern")
     print(f"{CYAN}0{RESET}) Back")
-    
+
     choice = prompt_input(f"{YELLOW}Select option: {RESET}").strip()
-    
+
     if choice == '1':
         patterns = generate_common_patterns()
         extra_words.extend(patterns)
@@ -528,7 +585,6 @@ def add_patterns_flow(extra_words: List[str]):
         pattern = prompt_input(f"{CYAN}Enter pattern: {RESET}").strip()
         if pattern:
             extra_words.append(pattern)
-            # Add some variants
             extra_words.extend(list(casing_variants(pattern)))
             print(f"{GREEN}✓ Added pattern and variants{RESET}")
 
@@ -537,11 +593,11 @@ def load_dictionary_flow(extra_words: List[str]):
     filepath = prompt_input(f"{CYAN}Enter dictionary file path: {RESET}").strip()
     if not filepath:
         return
-    
+
     if not os.path.exists(filepath):
         print(f"{RED}File not found: {filepath}{RESET}")
         return
-    
+
     words = load_dictionary(filepath)
     if words:
         extra_words.extend(words)
@@ -552,21 +608,21 @@ def show_statistics_flow(words: List[str]):
     if not words:
         print(f"{YELLOW}No words generated yet.{RESET}")
         return
-    
+
     stats = calculate_statistics(words)
-    
+
     print(f"\n{CYAN}═══ Wordlist Statistics ═══{RESET}")
     print(f"Total words: {YELLOW}{stats['total']}{RESET}")
     print(f"Unique words: {YELLOW}{stats['unique']}{RESET}")
     print(f"Min length: {YELLOW}{stats['min_length']}{RESET}")
     print(f"Max length: {YELLOW}{stats['max_length']}{RESET}")
     print(f"Avg length: {YELLOW}{stats['avg_length']:.1f}{RESET}")
-    
+
     print(f"\n{CYAN}Length Distribution (top 10):{RESET}")
     for length, count in stats['length_distribution'].most_common(10):
         bar = '█' * min(50, count // max(1, stats['total'] // 50))
         print(f"{length:3} chars: {bar} {count}")
-    
+
     print(f"\n{CYAN}Character Distribution (top 10):{RESET}")
     for char, count in stats['char_distribution']:
         print(f"{char}: {count}")
@@ -576,7 +632,7 @@ def shuffle_flow(words: List[str]) -> List[str]:
     if not words:
         print(f"{YELLOW}No words to shuffle.{RESET}")
         return words
-    
+
     shuffled = words.copy()
     random.shuffle(shuffled)
     print(f"{GREEN}✓ Shuffled {len(shuffled)} words{RESET}")
@@ -587,18 +643,18 @@ def advanced_transforms_flow(words: List[str]) -> List[str]:
     if not words:
         print(f"{YELLOW}No words to transform.{RESET}")
         return words
-    
+
     print(f"\n{CYAN}═══ Advanced Transformations ═══{RESET}")
     print(f"{CYAN}1{RESET}) Add special character suffixes (!@#$)")
     print(f"{CYAN}2{RESET}) Reverse all words")
     print(f"{CYAN}3{RESET}) Add year suffixes (2020-2025)")
     print(f"{CYAN}4{RESET}) Add number suffixes (1-100)")
     print(f"{CYAN}0{RESET}) Back")
-    
+
     choice = prompt_input(f"{YELLOW}Select option: {RESET}").strip()
-    
+
     result = words.copy()
-    
+
     if choice == '1':
         print(f"{YELLOW}Adding special character variants...{RESET}")
         new_words = []
@@ -606,12 +662,12 @@ def advanced_transforms_flow(words: List[str]) -> List[str]:
             new_words.extend(list(add_special_char_variants(w)))
         result.extend(new_words)
         print(f"{GREEN}✓ Added {len(new_words)} variants{RESET}")
-    
+
     elif choice == '2':
         reversed_words = [reverse_string(w) for w in words]
         result.extend(reversed_words)
         print(f"{GREEN}✓ Added {len(reversed_words)} reversed words{RESET}")
-    
+
     elif choice == '3':
         new_words = []
         for w in words[:500]:  # Limit
@@ -620,7 +676,7 @@ def advanced_transforms_flow(words: List[str]) -> List[str]:
                 new_words.append(w + str(year)[2:])
         result.extend(new_words)
         print(f"{GREEN}✓ Added {len(new_words)} year variants{RESET}")
-    
+
     elif choice == '4':
         new_words = []
         for w in words[:200]:  # Limit
@@ -628,7 +684,7 @@ def advanced_transforms_flow(words: List[str]) -> List[str]:
                 new_words.append(w + str(num))
         result.extend(new_words)
         print(f"{GREEN}✓ Added {len(new_words)} number variants{RESET}")
-    
+
     # Dedupe
     seen = set()
     unique = []
@@ -636,7 +692,7 @@ def advanced_transforms_flow(words: List[str]) -> List[str]:
         if w not in seen:
             seen.add(w)
             unique.append(w)
-    
+
     return unique
 
 
@@ -657,10 +713,13 @@ def main_loop():
     generated: List[str] = []
     extra_words: List[str] = []
 
+    # Check/create output folder on startup
+    ensure_output_dir()
+
     while True:
         show_menu()
         cmd = prompt_input(f"\n{YELLOW}Select option (0-11): {RESET}").strip()
-        
+
         if cmd == '1':
             create_value_flow(fields)
         elif cmd == '2':
@@ -693,6 +752,7 @@ def main_loop():
             return
         else:
             print(f"{RED}Unknown option. Choose 0-11.{RESET}")
+
 
 # ----------------- Entry point -----------------------------------------
 
